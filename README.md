@@ -213,7 +213,9 @@ uv run whisper_http_client.py --port 8100 --audio_path audio/example.wav
 
 ### 4. OpenAI SDK
 
-Because the API is OpenAI-compatible, the official SDK works out of the box:
+Because the API is OpenAI-compatible, the official SDK works out of the box. Point
+`base_url` at `http://localhost:8100/v1` (**include the `/v1`**) and pass any non-empty
+`api_key` — the server ignores it, but the SDK rejects an empty one.
 
 ```python
 from openai import OpenAI
@@ -224,9 +226,50 @@ with open("audio/example.wav", "rb") as f:
     result = client.audio.transcriptions.create(
         model="whisper-large-v3-turbo",
         file=f,
-        language="zh",
+        language="zh",   # optional; omit for auto-detect
     )
 print(result.text)
+```
+
+All standard params are supported (`response_format`, `temperature`, `prompt`,
+`timestamp_granularities`). The return type depends on `response_format`:
+
+```python
+# verbose_json -> object with .language, .duration, .segments
+with open("audio/example.wav", "rb") as f:
+    r = client.audio.transcriptions.create(
+        model="whisper-large-v3-turbo", file=f, response_format="verbose_json"
+    )
+print(r.language, r.duration, len(r.segments))
+
+# srt / vtt / text -> plain str
+with open("audio/example.wav", "rb") as f:
+    srt = client.audio.transcriptions.create(
+        model="whisper-large-v3-turbo", file=f, response_format="srt"
+    )
+```
+
+**Gotchas:**
+- `model` is informational — the server always uses whatever `--model_dir` it started
+  with, so any value works.
+- Auto-detect labels Cantonese as `zh`, not `yue`. Pass `language="yue"` explicitly if
+  you need `yue` reported (it also switches output to simplified characters).
+
+### 5. Node / TypeScript SDK
+
+```ts
+import OpenAI from "openai";
+import fs from "fs";
+
+const client = new OpenAI({ baseURL: "http://localhost:8100/v1", apiKey: "not-needed" });
+
+const file = fs.createReadStream("audio/example.wav");
+const res = await client.audio.transcriptions.create({
+  model: "whisper-large-v3-turbo",
+  file,
+  language: "zh",
+});
+console.log(res.text);
 ```
 
 ## API Reference
