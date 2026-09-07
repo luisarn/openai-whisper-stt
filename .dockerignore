@@ -1,0 +1,14 @@
+.venv
+.git
+.gitignore
+.DS_Store
+__pycache__
+*.py[oc]
+models
+audio
+temp
+temp_dir
+server.log
+.env
+prompts
+README.md
